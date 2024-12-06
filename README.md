@@ -1,2 +1,2 @@
-# climate_utils
+# ClimateUtils
 Climate Utilities

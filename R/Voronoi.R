@@ -1,46 +1,23 @@
 #' Voronoi
 #'
-#' Description
-#'
-#' @param data list. List of SpatVectors containing spatial points.
-#'
-#' @return
-#' @seealso
-#'
-#' @name
-#' @export
-#'
-#' @examples
-#'
-build_voronoi <- function(data, aoi = NULL, outpath){
-  v_df <- data.frame(matrix(ncol = 2,
-                     nrow = length(data))
-#             row.names = unlist(modellist) # Find a way to name each voronoi
-             )
-  colnames(v_df) <- c("ID", "path")
-  v_df$ID <- 1:length(data)
-
-  for(i in 1:length(data)){
-    voi <- terra::voronoi(data[i])
-    if(!is.null(aoi)){
-      voi <- terra::crop(voi, aoi)
-    }
-    terra::writeVector(voi, file.path(outpath, paste0("Voronoi_", i, ".tif")))
-    v_df$path[i] <- paste0("Voronoi_", i, ".tif")
-  }
-  return(v_df)
-}
-
-#' Voronoi
-#'
 #' Calculates a voronoi using the terra package
 #'
-#' @param data Depending on method:
-#' - "terra": SpatVector. A terra SpatVector with spatial points.
-#' - "sf": Multipolygon. Sf multiploygon object with spatial points.
+#' @param x Depending on method:
 #'
-#' @param method character. "sf" or "terra". Which package should be used for
-#'               calculating the voronoi diagram?
+#' - `terra`: SpatVector. A terra SpatVector with spatial points.
+#'
+#' - `sf`: Multipolygon. Sf object with spatial points.
+#'
+#' - `path`: Character. A path to a vector object with spatial points that can be read by `terra::vect`.
+#' @param envelope Area of Interest
+#' @param values character. Column Name of your data values.
+#' @param filename character. Path object. Name of the output file.
+#' @param main character. Title for your voronoi.
+#' @param labels Row, Column or Vector of labels in x.
+#' @param statistics logical. If `TRUE`, basic data statistics will be plotted
+#'                   next to the diagramm. Default = `FALSE`.
+#' @param delaunay logical. If `TRUE`, a delauney diagramm will be plotted in
+#'                 the background. Default = `FALSE`.
 #'
 #' @return SpatVector. A terra SpatVector with voronoi polygons.
 #' @seealso terra, sf
@@ -49,23 +26,88 @@ build_voronoi <- function(data, aoi = NULL, outpath){
 #' @export voronoi
 #'
 #' @examples
-#' # extracted from terra package
-#' wkt <- c("MULTIPOLYGON ( ((40 40, 20 45, 45 30, 40 40)),
-#'         ((20 35, 10 30, 10 10, 30 5, 45 20, 20 35),(30 20, 20 15, 20 25, 30 20)))",
-#'         "POLYGON ((0 -5, 10 0, 10 -10, 0 -5))")
-#' x <- vect(wkt)
+#' # load example data
+#' nc <- st_read(system.file("gpkg/nc.gpkg", package="sf"), quiet = TRUE) %>%
+#'   summarise()
+#' df <- data.frame(plotID = 1:20,
+#'                  Temperature = runif(n=20, min=5, max=20))
+#' df <- dplyr::mutate(df, st_sample(nc, 20)) %>%
+#'   st_as_sf()
 #'
-#' v <- voronoi(x, "terra")
+#' # create Voronoi at "WorkingDirectory/Voronoi.pdf"
+#' voronoi(x = df,
+#'         envelope = nc,
+#'         values = "Temperature",
+#'         filename = "Voronoi.pdf",
+#'         main = "Voronoi",
+#'         labels = df$plotID,
+#'         statistics = TRUE,
+#'         delaunay = TRUE)
 #'
-#' plot(v, lwd=2, col=rainbow(15))
-#'
-voronoi <- function(data, method){
-  if(method == "terra"){
-    voi <- terra::voronoi(data) # sf checken
-    return(voi)
+
+voronoi <- function(x,
+                    envelope,
+                    values,
+                    filename,
+                    main = NULL,
+                    labels = NULL,
+                    statistics = FALSE,
+                    delaunay = FALSE){
+# read x again (no matter, if its a path, sf, or terra object)
+  data <- terra::vect(x)
+  aoi <- terra::vect(envelope)
+
+# Bring everything into same crs
+  data <- terra::project(data, "EPSG:32632")
+  aoi <- terra::project(aoi, "EPSG:32632")
+
+# Calculate Voronoi
+  v <- terra::voronoi(data)
+  voi <- terra::crop(v, aoi)
+
+# Optional: Calculate Delauney
+  if(isTRUE(delaunay)){
+    d <- terra::delaunay(data)
+    del <- terra::crop(d, aoi)
   }
-  if(method == "sf"){
-    voi <- sf::st_voronoi(data)
-    return(voi)
+
+# Create PDF
+  pdf(filename,
+      width = 11, height = 7.5,
+      bg = "white", colormodel = "cmyk",
+      paper = "a4r") # Start of PDF-File
+  terra::plot(voi,
+              values,
+              type = "continuous",
+              lwd = 2,
+              col = grey.colors(length(voi[[tail(names(voi), n = 2)[1]]][, 1]), start = 0, end = 1),
+              main = main,
+              background = "beige")
+  if(exists("del")){
+    terra::lines(del,
+                 lwd=2,
+                 col = "darkred",
+                 alpha = 0.1)
   }
+  terra::points(data, col = "yellow")
+  if(!is.null(labels)){
+    terra::text(data,
+                labels,
+#                halo = TRUE,
+                cex = 0.1)
+  }
+  if(isTRUE(statistics)){
+    legend("topright",
+           xpd = TRUE,
+           inset = c(-0.15, 0),
+           legend = c(paste0("Mean: ", round(mean(data[values][[1]][,1]), 3)),
+                      paste0("Min: ", round(min(data[values][[1]][,1]), 3)),
+                      paste0("Max: ", round(max(data[values][[1]][,1]), 3)),
+                      paste0("SD: ", round(sd(data[values][[1]][,1]), 3)),
+                      paste0("Median: ", round(median(data[values][[1]][,1]), 3))
+                      ),
+           title = values
+           )
+  }
+  dev.off() # End of PDF-File
 }

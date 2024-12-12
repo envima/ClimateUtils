@@ -6,7 +6,7 @@
 \usage{
 voronoi(
   x,
-  envelope,
+  envelope = NULL,
   values,
   filename,
   main = NULL,
@@ -16,7 +16,7 @@ voronoi(
 )
 }
 \arguments{
-\item{x}{Depending on method:
+\item{x}{To your liking:
 
 - `terra`: SpatVector. A terra SpatVector with spatial points.
 
@@ -24,7 +24,7 @@ voronoi(
 
 - `path`: Character. A path to a vector object with spatial points that can be read by `terra::vect`.}
 
-\item{envelope}{Area of Interest}
+\item{envelope}{Same as x. Polygon object containing the Area of Interest.}
 
 \item{values}{character. Column Name of your data values.}
 
@@ -47,7 +47,7 @@ SpatVector. A terra SpatVector with voronoi polygons.
 Calculates a voronoi using the terra package
 }
 \examples{
-load example data
+# load example data
 nc <- st_read(system.file("gpkg/nc.gpkg", package="sf"), quiet = TRUE) \%>\%
   summarise()
 df <- data.frame(plotID = 1:20,

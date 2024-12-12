@@ -2,14 +2,14 @@
 #'
 #' Calculates a voronoi using the terra package
 #'
-#' @param x Depending on method:
+#' @param x To your liking:
 #'
 #' - `terra`: SpatVector. A terra SpatVector with spatial points.
 #'
 #' - `sf`: Multipolygon. Sf object with spatial points.
 #'
 #' - `path`: Character. A path to a vector object with spatial points that can be read by `terra::vect`.
-#' @param envelope Area of Interest
+#' @param envelope Same as x. Polygon object containing the Area of Interest.
 #' @param values character. Column Name of your data values.
 #' @param filename character. Path object. Name of the output file.
 #' @param main character. Title for your voronoi.
@@ -46,7 +46,7 @@
 #'
 
 voronoi <- function(x,
-                    envelope,
+                    envelope = NULL,
                     values,
                     filename,
                     main = NULL,
@@ -55,36 +55,41 @@ voronoi <- function(x,
                     delaunay = FALSE){
 # read x again (no matter, if its a path, sf, or terra object)
   data <- terra::vect(x)
-  aoi <- terra::vect(envelope)
 
 # Bring everything into same crs
   data <- terra::project(data, "EPSG:32632")
-  aoi <- terra::project(aoi, "EPSG:32632")
 
 # Calculate Voronoi
   v <- terra::voronoi(data)
-  voi <- terra::crop(v, aoi)
 
 # Optional: Calculate Delauney
   if(isTRUE(delaunay)){
     d <- terra::delaunay(data)
-    del <- terra::crop(d, aoi)
   }
 
+# Optional: Crop to envelope
+  if (!is.null(envelope)){
+    aoi <- terra::vect(envelope)
+    aoi <- terra::project(aoi, "EPSG:32632")
+    v <- terra::crop(v, aoi)
+    if(isTRUE(delaunay)){
+      d <- terra::crop(d, aoi)
+    }
+  }
 # Create PDF
   pdf(filename,
       width = 11, height = 7.5,
       bg = "white", colormodel = "cmyk",
       paper = "a4r") # Start of PDF-File
-  terra::plot(voi,
+  terra::plot(v,
               values,
               type = "continuous",
               lwd = 2,
-              col = grey.colors(length(voi[[tail(names(voi), n = 2)[1]]][, 1]), start = 0, end = 1),
+              col = grey.colors(length(v[[tail(names(v), n = 2)[1]]][, 1]), start = 0, end = 1),
               main = main,
               background = "beige")
-  if(exists("del")){
-    terra::lines(del,
+  if(exists("d")){
+    terra::lines(d,
                  lwd=2,
                  col = "darkred",
                  alpha = 0.1)

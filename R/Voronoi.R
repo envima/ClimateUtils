@@ -53,7 +53,10 @@ voronoi <- function(x,
                     labels = NULL,
                     statistics = FALSE,
                     delaunay = FALSE){
-# read x again (no matter, if its a path, sf, or terra object)
+# add values to x
+  x$ClimUtils <- values
+
+# change to terra object
   data <- terra::vect(x)
 
 # Bring everything into same crs
@@ -82,10 +85,10 @@ voronoi <- function(x,
       bg = "white", colormodel = "cmyk",
       paper = "a4r") # Start of PDF-File
   terra::plot(v,
-              values,
+              "ClimUtils",
               type = "continuous",
               lwd = 2,
-              col = grey.colors(length(v[[tail(names(v), n = 2)[1]]][, 1]), start = 0, end = 1),
+              col = grey.colors(length(v$ClimUtils)),
               main = main,
               background = "beige")
   if(exists("d")){
@@ -105,13 +108,13 @@ voronoi <- function(x,
     legend("topright",
            xpd = TRUE,
            inset = c(-0.15, 0),
-           legend = c(paste0("Mean: ", round(mean(data[values][[1]][,1]), 3)),
-                      paste0("Min: ", round(min(data[values][[1]][,1]), 3)),
-                      paste0("Max: ", round(max(data[values][[1]][,1]), 3)),
-                      paste0("SD: ", round(sd(data[values][[1]][,1]), 3)),
-                      paste0("Median: ", round(median(data[values][[1]][,1]), 3))
+           legend = c(paste0("Mean: ", round(mean(data$ClimUtils), 3)),
+                      paste0("Min: ", round(min(data$ClimUtils), 3)),
+                      paste0("Max: ", round(max(data$ClimUtils), 3)),
+                      paste0("SD: ", round(sd(data$ClimUtils), 3)),
+                      paste0("Median: ", round(median(data$ClimUtils), 3))
                       ),
-           title = values
+           title = "Value Statistics"
            )
   }
   dev.off() # End of PDF-File

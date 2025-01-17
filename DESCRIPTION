@@ -10,9 +10,11 @@ License: GPL (= 3)
 Encoding: UTF-8
 LazyData: true
 Imports:
-  terra,
+  dplyr,
+  rdwd,
   sf,
-  dplyr
+  terra,
+  utils
 Depends:
   R (>= 4.0.0)
 Suggests:

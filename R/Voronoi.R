@@ -27,7 +27,8 @@
 #'
 #' @examples
 #' # load example data
-#' nc <- st_read(system.file("gpkg/nc.gpkg", package="sf"), quiet = TRUE) %>%
+#' \dontrun{
+#' nc1 <- st_read(system.file("gpkg/nc.gpkg", package="sf"), quiet = TRUE) %>%
 #'   summarise()
 #' df <- data.frame(plotID = 1:20,
 #'                  Temperature = runif(n=20, min=5, max=20))
@@ -43,7 +44,7 @@
 #'         labels = df$plotID,
 #'         statistics = TRUE,
 #'         delaunay = TRUE)
-#'
+#' }
 
 voronoi <- function(x,
                     envelope = NULL,

@@ -93,3 +93,14 @@ find_dwd_stations <- function(x,
   return(dataframe)
 }
 
+
+
+
+load_dwd_data <- function(dataframe,
+                          res,
+                          var,
+                          per,
+                          start,
+                          end){
+
+}

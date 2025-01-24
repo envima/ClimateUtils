@@ -10,11 +10,13 @@ License: GPL (= 3)
 Encoding: UTF-8
 LazyData: true
 Imports:
-  dplyr,
-  rdwd,
-  sf,
-  terra,
-  utils
+    dplyr,
+    magrittr,
+    rdwd,
+    sf,
+    terra,
+    utils
 Depends:
   R (>= 4.0.0)
 RoxygenNote: 7.3.2
+Roxygen: list(markdown = TRUE)

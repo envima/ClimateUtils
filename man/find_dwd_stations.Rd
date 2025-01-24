@@ -47,3 +47,6 @@ dataframe <- find_dwd_stations(p,
                                update_rdwd = TRUE)
 utils::head(dataframe)
 }
+\seealso{
+\link{load_dwd_data}, \code{\link[rdwd:selectDWD]{rdwd::selectDWD()}}
+}

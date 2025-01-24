@@ -1,0 +1,20 @@
+Package: ClimateUtils
+Type: Package
+Title: Climate Utilities
+Version: 1.0.0
+Author: Alexander Klug [aut, cre],
+  Stephan Woellauer [aut, cre]
+Maintainer: Envima <yourself@somewhere.net>
+Description: The R package ClimateUtils contains utility functions for climate data.
+License: GPL (= 3)
+Encoding: UTF-8
+LazyData: true
+Imports:
+  dplyr,
+  rdwd,
+  sf,
+  terra,
+  utils
+Depends:
+  R (>= 4.0.0)
+RoxygenNote: 7.3.2

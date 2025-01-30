@@ -140,18 +140,20 @@ load_dwd_data <- function(dataframe,
                           start,
                           end){
 
-  # define res, var and per
-  res <- ifelse(is.null(res),
-                dataframe[which(dataframe$Stations_id == i),]$res,
-                res)
-  var <- ifelse(is.null(var),
-                dataframe[which(dataframe$Stations_id == i),]$var,
-                var)
-  per <- ifelse(is.null(per),
-                dataframe[which(dataframe$Stations_id == i),]$per,
-                per)
 
   for (i in unique(dataframe$Stations_id)){
+
+    # define res, var and per
+    res <- ifelse(is.null(res),
+                  dataframe[which(dataframe$Stations_id == i),]$res,
+                  res)
+    var <- ifelse(is.null(var),
+                  dataframe[which(dataframe$Stations_id == i),]$var,
+                  var)
+    per <- ifelse(is.null(per),
+                  dataframe[which(dataframe$Stations_id == i),]$per,
+                  per)
+
     # select right station
     ftp <- rdwd::selectDWD(id = i,
                            res = res,

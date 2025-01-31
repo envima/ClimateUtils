@@ -48,5 +48,5 @@ dataframe <- find_dwd_stations(p,
 utils::head(dataframe)
 }
 \seealso{
-\link{load_dwd_data}, \code{\link[rdwd:selectDWD]{rdwd::selectDWD()}}
+[load_dwd_data]{load_dwd_data}, [rdwd::selectDWD()]{selectDWD}
 }

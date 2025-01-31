@@ -81,15 +81,15 @@ voronoi <- function(x,
     }
   }
 # Create PDF
-  pdf(filename,
-      width = 11, height = 7.5,
-      bg = "white", colormodel = "cmyk",
-      paper = "a4r") # Start of PDF-File
+  grDevices::pdf(filename,
+                 width = 11, height = 7.5,
+                 bg = "white", colormodel = "cmyk",
+                 paper = "a4r") # Start of PDF-File
   terra::plot(v,
               "ClimUtils",
               type = "continuous",
               lwd = 2,
-              col = grey.colors(length(v$ClimUtils)),
+              col = grDevices::grey.colors(length(v$ClimUtils)),
               main = main,
               background = "beige")
   if(exists("d")){
@@ -106,17 +106,17 @@ voronoi <- function(x,
                 cex = 0.1)
   }
   if(isTRUE(statistics)){
-    legend("topright",
-           xpd = TRUE,
-           inset = c(-0.15, 0),
-           legend = c(paste0("Mean: ", round(mean(data$ClimUtils), 3)),
-                      paste0("Min: ", round(min(data$ClimUtils), 3)),
-                      paste0("Max: ", round(max(data$ClimUtils), 3)),
-                      paste0("SD: ", round(sd(data$ClimUtils), 3)),
-                      paste0("Median: ", round(median(data$ClimUtils), 3))
-                      ),
-           title = "Value Statistics"
-           )
+    graphics::legend("topright",
+                     xpd = TRUE,
+                     inset = c(-0.15, 0),
+                     legend = c(paste0("Mean: ", round(mean(data$ClimUtils), 3)),
+                                paste0("Min: ", round(min(data$ClimUtils), 3)),
+                                paste0("Max: ", round(max(data$ClimUtils), 3)),
+                                paste0("SD: ", round(stats::sd(data$ClimUtils), 3)),
+                                paste0("Median: ", round(stats::median(data$ClimUtils), 3))
+                                ),
+                     title = "Value Statistics"
+                     )
   }
-  dev.off() # End of PDF-File
+  grDevices::dev.off() # End of PDF-File
 }

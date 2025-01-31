@@ -9,7 +9,7 @@
 #' @param update_rdwd logical. Use updateRdwd() before execution? Important if one wants the most recent stations from DWD.
 #'
 #' @return dataframe. A data frame containing all nearby stations defined in number_of_stations
-#' @seealso [load_dwd_data], [rdwd::selectDWD()]
+#' @seealso [load_dwd_data]{load_dwd_data}, [rdwd::selectDWD()]{selectDWD}
 #'
 #' @name find_dwd_stations
 #' @export find_dwd_stations
@@ -42,18 +42,24 @@ find_dwd_stations <- function(x,
   point <- sf::st_transform(x, "EPSG:4326")
 
   # check rdwd version
-  a <- installed.packages()[which(row.names(installed.packages()) == "rdwd"), 3]
-  b <- available.packages()[which(row.names(available.packages()) == "rdwd"), 2]
+  a <- utils::installed.packages()[which(
+        row.names(utils::installed.packages()) == "rdwd"), 3]
+  b <- utils::available.packages(
+    contriburl = utils::contrib.url(
+      c(CRAN = "https://cloud.r-project.org")))[which(
+        row.names(utils::available.packages(
+          contriburl = utils::contrib.url(
+            c(CRAN = "https://cloud.r-project.org")))) == "rdwd"), 2]
 
   if (utils::compareVersion(a, b) == 1){
     cat("You are using the newest version of `rdwd`.\n")
   } else {  # Up to date Condition
     if (utils::compareVersion(a, b) == 0){
-      ifelse(isFALSE(check_for_updates),
+      ifelse(isFALSE(update_rdwd),
              cat("Your version of `rdwd` is up to date with CRAN. There might be a newer version when running `rdwd::updateRdwd()`.\n"),
              rdwd::updateRdwd())
     } else {
-      ifelse(isFALSE(check_for_updates),
+      ifelse(isFALSE(update_rdwd),
              cat("Your version of `rdwd` is outdated. Setting argument `update_rdwd` to `TRUE` is recommended.\n"),
              rdwd::updateRdwd())
     } # Outdated Version Condition
@@ -98,16 +104,17 @@ find_dwd_stations <- function(x,
 #'
 #' Search n-count of nearby DWD stations from a point in space.
 #'
-#' @param dataframe dataframe returned by [find_dwd_data].
+#' @param dataframe dataframe returned by [find_dwd_stations].
 #' @param dir character. Directory where DWD_raw_files should be stored. Default = `tempdir()`.
 #' @param res,var,per character. Restrictions for dataset type as documented in rdwd::selectDWD(). Each can be a vector of entries. Per default taken from dataframe.
 #' @param start,end character. Start and End of Timeseries one wants to load. Format = `"yyyy-mm-dd"`
 #'
 #' @return dataframe containing all stations loaded after one another.
-#' @seealso [find_dwd_data], [rdwd::selectDWD()]
+#' @seealso [find_dwd_stations]{find_dwd_stations}, [rdwd::selectDWD()]{selectDWD}
 #'
 #' @name load_dwd_data
 #' @importFrom magrittr %>%
+#' @importFrom rlang .data
 #'
 #' @export load_dwd_data
 #'
@@ -140,19 +147,18 @@ load_dwd_data <- function(dataframe,
                           start,
                           end){
 
-
   for (i in unique(dataframe$Stations_id)){
 
     # define res, var and per
-    res <- ifelse(is.null(res),
-                  dataframe[which(dataframe$Stations_id == i),]$res,
-                  res)
-    var <- ifelse(is.null(var),
-                  dataframe[which(dataframe$Stations_id == i),]$var,
-                  var)
-    per <- ifelse(is.null(per),
-                  dataframe[which(dataframe$Stations_id == i),]$per,
-                  per)
+    if(is.null(res)){
+      res <- dataframe[which(dataframe$Stations_id == i),]$res
+    }
+    if(is.null(var)){
+      var <- dataframe[which(dataframe$Stations_id == i),]$var
+    }
+    if(is.null(per)){
+      per <- dataframe[which(dataframe$Stations_id == i),]$per
+    }
 
     # select right station
     ftp <- rdwd::selectDWD(id = i,
@@ -172,7 +178,7 @@ load_dwd_data <- function(dataframe,
     }
 
     dwd <- dwd[,c(1:2, 4:(length(var) + 3))] %>%
-      dplyr::filter(dplyr::between(MESS_DATUM, as.Date(start), as.Date(end)))
+      dplyr::filter(dplyr::between(.data$MESS_DATUM, as.Date(start), as.Date(end)))
 
     if(!exists("dwd_full")){
       dwd_full <- dwd
@@ -185,4 +191,91 @@ load_dwd_data <- function(dataframe,
   dwd_full$datetime <- format(dwd_full$datetime, "%Y-%m-%dT%H")
 
   return(dwd_full)
+}
+
+#' Aggregate DWD data
+#'
+#' Aggregate downloaded DWD data to what the user likes.
+#'
+#' @param dataframe dataframe returned by [load_dwd_data]{load_dwd_data} or in the same format.
+#' @param aggregation_of_time character. To what time span should data be aggregated? Options: "hour", "day", "week", "month", "year"
+#' @param min_entries integer. Minimum number of entries for a single time step in the aggregation to be valid.
+#'
+#' @return dataframe containing all aggregated stations loaded after one another.
+#' @seealso [load_dwd_data]{load_dwd_data}
+#'
+#' @name aggregate_dwd_data
+#'
+#' @export aggregate_dwd_data
+#'
+#' @examples
+#' # create sf_point from central Germany
+#' g <- sf::st_sfc(sf::st_point(x = c(51.163375, 10.447683)), crs = "EPSG:4326")
+#' p <- sf::st_sf(ID = "central_germany", geom = g)
+#'
+#' # find 20 nearest dwd stations from central germany that are running til today
+#' dataframe <- find_dwd_stations(p,
+#'                                number_of_stations = 20,
+#'                                mindate = "2024-06-30",
+#'                                res = "hourly",
+#'                                var = "air_temperature",
+#'                                per = "recent",
+#'                                update_rdwd = TRUE)
+#'
+#' # download and filter all these stations to desired structure
+#' dwd_raw <- load_dwd_data(dataframe,
+#'                          per = c("recent", "historical"),
+#'                          start = "2022-08-01",
+#'                          end = "2024-07-31")
+#'
+#' # aggregate data to monthly means
+#' dwd_aggregated <- aggregate_dwd_data(dwd_raw,
+#'                                      aggregation_of_time = "monthly")
+#'
+#' # show data
+#' utils::head(dwd_aggregated)
+
+aggregate_dwd_data <- function(dataframe,
+                               aggregation_of_time,
+                               min_entries = NULL){
+
+#  table(data[which(data$plotID == 896),]$datetime)
+
+  # aggregate datetime
+  if (aggregation_of_time == "hour"){
+    data <- transform(dataframe, datetime = substring(datetime, 1, 13))
+  }
+  if (aggregation_of_time == "day"){
+    data <- transform(dataframe, datetime = substring(datetime, 1, 10))
+
+  }
+  if (aggregation_of_time == "week"){
+    data <- transform(dataframe, datetime = substring(datetime, 1, 10))
+    data$datetime <- lubridate::floor_date(as.Date(data$datetime), "week")
+  }
+  if (aggregation_of_time == "month"){
+    data <- transform(dataframe, datetime = substring(datetime, 1, 7))
+  }
+  if (aggregation_of_time == "year"){
+    data <- transform(dataframe, datetime = substring(datetime, 1, 4))
+  }
+
+  nr_of_dates <- length(unique(data$plotID)) * length(unique(data$datetime))
+  foo <- as.formula(paste0(colnames(data)[3], " ~ datetime"))
+
+  # aggregate time
+  result <- data.frame(matrix(ncol = 3, nrow = nr_of_dates))
+  colnames(result) <- colnames(dataframe)
+  counter <- 1
+
+  for (i in unique(data$plotID)){
+    data_agg <- stats::aggregate(foo,
+                                 data[which(data$plotID == i),],
+                                 mean)
+    result[c(counter:(nrow(data_agg) + counter - 1)), 1] <- i
+    result[c(counter:(nrow(data_agg) + counter - 1)), 2:3] <- data_agg
+    counter <- counter + nrow(data_agg)
+  }
+
+  return(result)
 }

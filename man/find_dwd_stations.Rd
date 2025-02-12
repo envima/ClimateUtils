@@ -37,9 +37,9 @@ Search n-count of nearby DWD stations from a point in space.
 g <- sf::st_sfc(sf::st_point(x = c(51.163375, 10.447683)), crs = "EPSG:4326")
 p <- sf::st_sf(ID = "central_germany", geom = g)
 
-# find 20 nearest dwd stations from central germany that are running til today
+# find 10 nearest dwd stations from central germany that are running til today
 dataframe <- find_dwd_stations(p,
-                               number_of_stations = 20,
+                               number_of_stations = 10,
                                mindate = "2024-06-30",
                                res = "hourly",
                                var = "air_temperature",
@@ -48,5 +48,5 @@ dataframe <- find_dwd_stations(p,
 utils::head(dataframe)
 }
 \seealso{
-[load_dwd_data]{load_dwd_data}, [rdwd::selectDWD()]{selectDWD}
+\code{\link[=load_dwd_data]{load_dwd_data()}}, \code{\link[rdwd:selectDWD]{rdwd::selectDWD()}}
 }

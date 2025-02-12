@@ -9,7 +9,7 @@
 #' @param update_rdwd logical. Use updateRdwd() before execution? Important if one wants the most recent stations from DWD.
 #'
 #' @return dataframe. A data frame containing all nearby stations defined in number_of_stations
-#' @seealso [load_dwd_data]{load_dwd_data}, [rdwd::selectDWD()]{selectDWD}
+#' @seealso [load_dwd_data()], [rdwd::selectDWD()]
 #'
 #' @name find_dwd_stations
 #' @export find_dwd_stations
@@ -20,9 +20,9 @@
 #' g <- sf::st_sfc(sf::st_point(x = c(51.163375, 10.447683)), crs = "EPSG:4326")
 #' p <- sf::st_sf(ID = "central_germany", geom = g)
 #'
-#' # find 20 nearest dwd stations from central germany that are running til today
+#' # find 10 nearest dwd stations from central germany that are running til today
 #' dataframe <- find_dwd_stations(p,
-#'                                number_of_stations = 20,
+#'                                number_of_stations = 10,
 #'                                mindate = "2024-06-30",
 #'                                res = "hourly",
 #'                                var = "air_temperature",
@@ -104,14 +104,13 @@ find_dwd_stations <- function(x,
 #'
 #' Search n-count of nearby DWD stations from a point in space.
 #'
-#' @param dataframe dataframe returned by [find_dwd_stations].
+#' @param dataframe dataframe returned by [find_dwd_stations()].
 #' @param dir character. Directory where DWD_raw_files should be stored. Default = `tempdir()`.
 #' @param res,var,per character. Restrictions for dataset type as documented in rdwd::selectDWD(). Each can be a vector of entries. Per default taken from dataframe.
 #' @param start,end character. Start and End of Timeseries one wants to load. Format = `"yyyy-mm-dd"`
 #'
 #' @return dataframe containing all stations loaded after one another.
-#' @seealso [find_dwd_stations]{find_dwd_stations}, [rdwd::selectDWD()]{selectDWD}
-#'
+#' @seealso [find_dwd_stations()], [rdwd::selectDWD()]
 #' @name load_dwd_data
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data
@@ -123,9 +122,9 @@ find_dwd_stations <- function(x,
 #' g <- sf::st_sfc(sf::st_point(x = c(51.163375, 10.447683)), crs = "EPSG:4326")
 #' p <- sf::st_sf(ID = "central_germany", geom = g)
 #'
-#' # find 20 nearest dwd stations from central germany that are running til today
+#' # find 10 nearest dwd stations from central germany that are running til today
 #' dataframe <- find_dwd_stations(p,
-#'                                number_of_stations = 20,
+#'                                number_of_stations = 10,
 #'                                mindate = "2024-06-30",
 #'                                res = "hourly",
 #'                                var = "air_temperature",
@@ -173,10 +172,25 @@ load_dwd_data <- function(dataframe,
                          sleep = ifelse(length(unique(dataframe$Stations_id)) > 50, 20, 0),
                          quiet = TRUE)
 
-    if(isFALSE(is.data.frame(dwd))){
-      dwd <- do.call("rbind", c(dwd, make.row.names = FALSE))
-    }
+    # rename row names for easy filtering
+    n <- names(dwd)
+    n[which(grepl("historical", n))] <- "historical"
+    n[which(grepl("recent", n))] <- "recent"
+    n[which(grepl("now", n))] <- "now"
+    names(dwd) <- n
+    remove(n)
 
+    # bind together and remove row names
+    if(isFALSE(is.data.frame(dwd))){
+      dwd <- do.call("rbind", c(dwd, make.row.names = TRUE))
+    }
+    dwd$per <- gsub("\\..*", "", row.names(dwd))
+    rownames(dwd) <- NULL
+
+    # filter similar dates
+    dwd <- dwd[!duplicated(dwd[c("MESS_DATUM")]), ]
+
+    # filter for start and end
     dwd <- dwd[,c(1:2, 4:(length(var) + 3))] %>%
       dplyr::filter(dplyr::between(.data$MESS_DATUM, as.Date(start), as.Date(end)))
 
@@ -197,12 +211,12 @@ load_dwd_data <- function(dataframe,
 #'
 #' Aggregate downloaded DWD data to what the user likes.
 #'
-#' @param dataframe dataframe returned by [load_dwd_data]{load_dwd_data} or in the same format.
+#' @param dataframe dataframe returned by [load_dwd_data()] or in the same format.
 #' @param aggregation_of_time character. To what time span should data be aggregated? Options: "hour", "day", "week", "month", "year"
 #' @param min_entries integer. Minimum number of entries for a single time step in the aggregation to be valid.
 #'
 #' @return dataframe containing all aggregated stations loaded after one another.
-#' @seealso [load_dwd_data]{load_dwd_data}
+#' @seealso [load_dwd_data()]
 #'
 #' @name aggregate_dwd_data
 #'
@@ -213,9 +227,9 @@ load_dwd_data <- function(dataframe,
 #' g <- sf::st_sfc(sf::st_point(x = c(51.163375, 10.447683)), crs = "EPSG:4326")
 #' p <- sf::st_sf(ID = "central_germany", geom = g)
 #'
-#' # find 20 nearest dwd stations from central germany that are running til today
+#' # find 10 nearest dwd stations from central germany that are running til today
 #' dataframe <- find_dwd_stations(p,
-#'                                number_of_stations = 20,
+#'                                number_of_stations = 10,
 #'                                mindate = "2024-06-30",
 #'                                res = "hourly",
 #'                                var = "air_temperature",
@@ -230,7 +244,7 @@ load_dwd_data <- function(dataframe,
 #'
 #' # aggregate data to monthly means
 #' dwd_aggregated <- aggregate_dwd_data(dwd_raw,
-#'                                      aggregation_of_time = "monthly")
+#'                                      aggregation_of_time = "month")
 #'
 #' # show data
 #' utils::head(dwd_aggregated)
@@ -241,27 +255,50 @@ aggregate_dwd_data <- function(dataframe,
 
 #  table(data[which(data$plotID == 896),]$datetime)
 
+  if (!aggregation_of_time %in% c("hour", "day", "week", "month", "year")){
+    stop("aggregation_of_time must be a valid input string. \n It must be one of c('hour', 'day', 'week', 'month', 'year')")
+  }
+
   # aggregate datetime
   if (aggregation_of_time == "hour"){
-    data <- transform(dataframe, datetime = substring(datetime, 1, 13))
+    data <- dataframe
+    data$datetime <- substring(data$datetime, 1, 13)
+    if (is.null(min_entries)){
+      min_entries <- 18
+    }
   }
   if (aggregation_of_time == "day"){
-    data <- transform(dataframe, datetime = substring(datetime, 1, 10))
-
+    data <- dataframe
+    data$datetime <- substring(data$datetime, 1, 10)
+    if (is.null(min_entries)){
+      min_entries <- 22
+    }
   }
   if (aggregation_of_time == "week"){
-    data <- transform(dataframe, datetime = substring(datetime, 1, 10))
+    data <- dataframe
+    data$datetime <- substring(data$datetime, 1, 10)
     data$datetime <- lubridate::floor_date(as.Date(data$datetime), "week")
+    if (is.null(min_entries)){
+      min_entries <- 6
+    }
   }
   if (aggregation_of_time == "month"){
-    data <- transform(dataframe, datetime = substring(datetime, 1, 7))
+    data <- dataframe
+    data$datetime <-  substring(data$datetime, 1, 7)
+    if (is.null(min_entries)){
+      min_entries <- 27
+    }
   }
   if (aggregation_of_time == "year"){
-    data <- transform(dataframe, datetime = substring(datetime, 1, 4))
+    data <- dataframe
+    data$datetime <- substring(data$datetime, 1, 4)
+    if (is.null(min_entries)){
+      min_entries <- 11
+    }
   }
 
   nr_of_dates <- length(unique(data$plotID)) * length(unique(data$datetime))
-  foo <- as.formula(paste0(colnames(data)[3], " ~ datetime"))
+  foo <- stats::as.formula(paste0(colnames(data)[3], " ~ datetime"))
 
   # aggregate time
   result <- data.frame(matrix(ncol = 3, nrow = nr_of_dates))

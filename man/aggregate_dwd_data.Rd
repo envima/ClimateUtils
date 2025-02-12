@@ -7,7 +7,7 @@
 aggregate_dwd_data(dataframe, aggregation_of_time, min_entries = NULL)
 }
 \arguments{
-\item{dataframe}{dataframe returned by [load_dwd_data]{load_dwd_data} or in the same format.}
+\item{dataframe}{dataframe returned by \code{\link[=load_dwd_data]{load_dwd_data()}} or in the same format.}
 
 \item{aggregation_of_time}{character. To what time span should data be aggregated? Options: "hour", "day", "week", "month", "year"}
 
@@ -24,9 +24,9 @@ Aggregate downloaded DWD data to what the user likes.
 g <- sf::st_sfc(sf::st_point(x = c(51.163375, 10.447683)), crs = "EPSG:4326")
 p <- sf::st_sf(ID = "central_germany", geom = g)
 
-# find 20 nearest dwd stations from central germany that are running til today
+# find 10 nearest dwd stations from central germany that are running til today
 dataframe <- find_dwd_stations(p,
-                               number_of_stations = 20,
+                               number_of_stations = 10,
                                mindate = "2024-06-30",
                                res = "hourly",
                                var = "air_temperature",
@@ -41,11 +41,11 @@ dwd_raw <- load_dwd_data(dataframe,
 
 # aggregate data to monthly means
 dwd_aggregated <- aggregate_dwd_data(dwd_raw,
-                                     aggregation_of_time = "monthly")
+                                     aggregation_of_time = "month")
 
 # show data
 utils::head(dwd_aggregated)
 }
 \seealso{
-[load_dwd_data]{load_dwd_data}
+\code{\link[=load_dwd_data]{load_dwd_data()}}
 }

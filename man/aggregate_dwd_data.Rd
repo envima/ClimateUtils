@@ -4,7 +4,7 @@
 \alias{aggregate_dwd_data}
 \title{Aggregate DWD data}
 \usage{
-aggregate_dwd_data(dataframe, aggregation_of_time, min_entries = NULL)
+aggregate_dwd_data(dataframe, aggregation_of_time)
 }
 \arguments{
 \item{dataframe}{dataframe returned by \code{\link[=load_dwd_data]{load_dwd_data()}} or in the same format.}

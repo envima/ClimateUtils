@@ -7,7 +7,9 @@
 voronoi(
   x,
   envelope = NULL,
+  crop_envelope = TRUE,
   values,
+  col = grDevices::grey.colors(length(values)),
   filename,
   main = NULL,
   labels = NULL,
@@ -25,7 +27,11 @@ voronoi(
 
 \item{envelope}{Same as x. Polygon object containing the Area of Interest.}
 
+\item{crop_envelope}{Logical. If there is an envelope, should it be used to crop the scene? FALSE will add the envelope to the plot instead.}
+
 \item{values}{character. Column Name of your data values.}
+
+\item{col}{color palete. Default = \code{\link[grDevices:gray.colors]{grDevices::grey.colors()}}}
 
 \item{filename}{character. Path object. Name of the output file.}
 
@@ -48,20 +54,20 @@ Calculates a voronoi using the terra package
 \examples{
 # load example data
 \dontrun{
-nc1 <- st_read(system.file("gpkg/nc.gpkg", package="sf"), quiet = TRUE) \%>\%
+nc <- st_read(system.file("gpkg/nc.gpkg", package="sf"), quiet = TRUE) \%>\%
   summarise()
 df <- data.frame(plotID = 1:20,
                  Temperature = runif(n=20, min=5, max=20))
-df <- dplyr::mutate(df, st_sample(nc, 20)) \%>\%
+p <- dplyr::mutate(df, st_sample(nc, 20)) \%>\%
   st_as_sf()
 
 # create Voronoi at "WorkingDirectory/Voronoi.pdf"
-voronoi(x = df,
+voronoi(x = p,
         envelope = nc,
-        values = "Temperature",
+        values = p$Temperature,
         filename = "Voronoi.pdf",
         main = "Voronoi",
-        labels = df$plotID,
+        labels = p$plotID,
         statistics = TRUE,
         delaunay = TRUE)
 }

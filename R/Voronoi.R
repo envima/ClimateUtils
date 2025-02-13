@@ -10,6 +10,8 @@
 #'
 #' - `path`: Character. A path to a vector object with spatial points that can be read by `terra::vect`.
 #' @param envelope Same as x. Polygon object containing the Area of Interest.
+#' @param crop_envelope Logical. If there is an envelope, should it be used to crop the scene? FALSE will add the envelope to the plot instead.
+#' @param col color palete. Default = [grDevices::grey.colors()]
 #' @param values character. Column Name of your data values.
 #' @param filename character. Path object. Name of the output file.
 #' @param main character. Title for your voronoi.
@@ -28,27 +30,29 @@
 #' @examples
 #' # load example data
 #' \dontrun{
-#' nc1 <- st_read(system.file("gpkg/nc.gpkg", package="sf"), quiet = TRUE) %>%
+#' nc <- st_read(system.file("gpkg/nc.gpkg", package="sf"), quiet = TRUE) %>%
 #'   summarise()
 #' df <- data.frame(plotID = 1:20,
 #'                  Temperature = runif(n=20, min=5, max=20))
-#' df <- dplyr::mutate(df, st_sample(nc, 20)) %>%
+#' p <- dplyr::mutate(df, st_sample(nc, 20)) %>%
 #'   st_as_sf()
 #'
 #' # create Voronoi at "WorkingDirectory/Voronoi.pdf"
-#' voronoi(x = df,
+#' voronoi(x = p,
 #'         envelope = nc,
-#'         values = "Temperature",
+#'         values = p$Temperature,
 #'         filename = "Voronoi.pdf",
 #'         main = "Voronoi",
-#'         labels = df$plotID,
+#'         labels = p$plotID,
 #'         statistics = TRUE,
 #'         delaunay = TRUE)
 #' }
 
 voronoi <- function(x,
                     envelope = NULL,
+                    crop_envelope = TRUE,
                     values,
+                    col = grDevices::grey.colors(length(values)),
                     filename,
                     main = NULL,
                     labels = NULL,
@@ -63,8 +67,16 @@ voronoi <- function(x,
 # Bring everything into same crs
   data <- terra::project(data, "EPSG:32632")
 
+  extent <- terra::ext(data)
+  range.xy <- c(extent[2] - extent[1],
+                extent[4] - extent[3])
+  boundary <- c(extent[1] - 0.1*range.xy[1],
+                extent[2] + 0.1*range.xy[1],
+                extent[3] - 0.1*range.xy[2],
+                extent[4] + 0.1*range.xy[2])
+
 # Calculate Voronoi
-  v <- terra::voronoi(data)
+  v <- terra::voronoi(data, bnd = boundary)
 
 # Optional: Calculate Delauney
   if(isTRUE(delaunay)){
@@ -75,9 +87,11 @@ voronoi <- function(x,
   if (!is.null(envelope)){
     aoi <- terra::vect(envelope)
     aoi <- terra::project(aoi, "EPSG:32632")
-    v <- terra::crop(v, aoi)
-    if(isTRUE(delaunay)){
-      d <- terra::crop(d, aoi)
+    if (isTRUE(crop_envelope)){
+      v <- terra::crop(v, aoi)
+      if(isTRUE(delaunay)){
+        d <- terra::crop(d, aoi)
+      }
     }
   }
 # Create PDF
@@ -89,14 +103,20 @@ voronoi <- function(x,
               "ClimUtils",
               type = "continuous",
               lwd = 2,
-              col = grDevices::grey.colors(length(v$ClimUtils)),
+              col = col,
               main = main,
               background = "beige")
+  if(exists("aoi") & isFALSE(crop_envelope)){
+    terra::lines(aoi,
+                 lwd = 2,
+                 col = "darkgreen",
+                 alpha = .4)
+  }
   if(exists("d")){
     terra::lines(d,
-                 lwd=2,
+                 lwd = 2,
                  col = "darkred",
-                 alpha = 0.1)
+                 alpha = .1)
   }
   terra::points(data, col = "yellow")
   if(!is.null(labels)){

@@ -250,69 +250,86 @@ load_dwd_data <- function(dataframe,
 #' utils::head(dwd_aggregated)
 
 aggregate_dwd_data <- function(dataframe,
-                               aggregation_of_time,
-                               min_entries = NULL){
+                               aggregation_of_time){
 
-#  table(data[which(data$plotID == 896),]$datetime)
+  aggregate_sensor <- function(data, min_entries){
+    # create empty dataframe
+    product <- data[0, ]
+
+    # loop aggregation over sensors over plots
+    for (i in 1:(length(colnames(dataframe))-2)){
+      foo <- stats::as.formula(paste0(colnames(data)[2+i], " ~ datetime"))
+      counter <- 1
+      for (j in unique(data[, 1])){
+        t <- table(data[which(data[, 1] == j), 2])
+        check <-  data[which(data[, 1] == j), 2] == names(t[which(t < min_entries)])
+        data[which(check), 2+1] <- NA
+        try(data_agg <- stats::aggregate(foo,
+                                         data[which(data$plotID == j), ],
+                                         mean),
+            silent = TRUE)
+        product[c(counter:(nrow(data_agg) + counter - 1)), 1] <- j
+        product[c(counter:(nrow(data_agg) + counter - 1)), c(2, 2+i)] <- data_agg
+        counter <- counter + nrow(data_agg)
+      }
+    }
+    return(product)
+  }
+
 
   if (!aggregation_of_time %in% c("hour", "day", "week", "month", "year")){
     stop("aggregation_of_time must be a valid input string. \n It must be one of c('hour', 'day', 'week', 'month', 'year')")
   }
 
-  # aggregate datetime
-  if (aggregation_of_time == "hour"){
-    data <- dataframe
+  data <- dataframe
+
+  # aggregate hourly
+  if (aggregation_of_time %in% c("hour", "day", "week", "month", "year") & nchar(data$datetime[1]) > 13){
     data$datetime <- substring(data$datetime, 1, 13)
-    if (is.null(min_entries)){
-      min_entries <- 18
-    }
-  }
-  if (aggregation_of_time == "day"){
-    data <- dataframe
-    data$datetime <- substring(data$datetime, 1, 10)
-    if (is.null(min_entries)){
-      min_entries <- 22
-    }
-  }
+    hour <- aggregate_sensor(data,
+                             min_entries = 18)
+  } else {
+    hour <- data
+  } # end hourly
+  remove(data)
+
+  # aggregate daily
+  if (aggregation_of_time %in% c("day", "week", "month", "year") & nchar(hour$datetime[1]) > 10){
+    hour$datetime <- substring(hour$datetime, 1, 10)
+    day <- aggregate_sensor(hour,
+                            min_entries = 22)
+  } else {
+    day <- hour
+  }# end daily
+  remove(hour)
+
   if (aggregation_of_time == "week"){
-    data <- dataframe
-    data$datetime <- substring(data$datetime, 1, 10)
-    data$datetime <- lubridate::floor_date(as.Date(data$datetime), "week")
-    if (is.null(min_entries)){
-      min_entries <- 6
-    }
-  }
-  if (aggregation_of_time == "month"){
-    data <- dataframe
-    data$datetime <-  substring(data$datetime, 1, 7)
-    if (is.null(min_entries)){
-      min_entries <- 27
-    }
-  }
-  if (aggregation_of_time == "year"){
-    data <- dataframe
-    data$datetime <- substring(data$datetime, 1, 4)
-    if (is.null(min_entries)){
-      min_entries <- 11
-    }
+    day$datetime <- lubridate::floor_date(as.Date(data$datetime), "week")
+    week <- aggregate_sensor(day,
+                             min_entries = 6)
+    return(week)
   }
 
-  nr_of_dates <- length(unique(data$plotID)) * length(unique(data$datetime))
-  foo <- stats::as.formula(paste0(colnames(data)[3], " ~ datetime"))
+  # aggregate monthly
+  if (aggregation_of_time %in% c("month", "year") & nchar(day$datetime[1]) > 7){
+    day$datetime <-  substring(day$datetime, 1, 7)
+    month <- aggregate_sensor(day,
+                              min_entries = 27)
+  } else {
+    month <- day
+  } # end monthly
+  remove(day)
 
-  # aggregate time
-  result <- data.frame(matrix(ncol = 3, nrow = nr_of_dates))
-  colnames(result) <- colnames(dataframe)
-  counter <- 1
+  # aggregate annual
+  if (aggregation_of_time == "year"& nchar(month$datetime[1]) > 4){
+    month$datetime <- substring(month$datetime, 1, 4)
+    year <- aggregate_sensor(month,
+                             min_entries = 12)
+  } else {
+    year <- month
+    warning("No data was aggregated. Maybe check format of your input data.")
+  } # end year
+  remove(month)
 
-  for (i in unique(data$plotID)){
-    data_agg <- stats::aggregate(foo,
-                                 data[which(data$plotID == i),],
-                                 mean)
-    result[c(counter:(nrow(data_agg) + counter - 1)), 1] <- i
-    result[c(counter:(nrow(data_agg) + counter - 1)), 2:3] <- data_agg
-    counter <- counter + nrow(data_agg)
-  }
-
-  return(result)
+  return(year)
 }

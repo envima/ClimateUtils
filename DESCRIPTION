@@ -1,7 +1,7 @@
 Package: ClimateUtils
 Type: Package
 Title: Climate Utilities
-Version: 1.2.1
+Version: 1.2.2
 Author: Alexander Klug [aut, cre],
   Stephan Woellauer [aut, cre]
 Maintainer: Envima <yourself@somewhere.net>

@@ -36,7 +36,7 @@ find_dwd_stations <- function(x,
                               mindate,
                               res,
                               var,
-                              per,
+                              per = c("historical", "recent", "now"),
                               update_rdwd = FALSE){
   # first transform x into WGS 84 (required for rdwd)
   point <- sf::st_transform(x, "EPSG:4326")
@@ -166,6 +166,11 @@ load_dwd_data <- function(dataframe,
                            per = per)
 
     # download and filter station data
+    if(length(unique(dataframe$Stations_id)) > 50){
+      message("Due to recommendations of the author from the package 'rdwd', a
+              sleep timer of 20 ticks between each station is now used, because
+              more than 50 stations will be loaded.")
+    }
     dwd <- rdwd::dataDWD(ftp,
                          dir = dir,
                          read = TRUE,

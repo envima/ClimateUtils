@@ -13,11 +13,12 @@
 #' @param crop_envelope Logical. If there is an envelope, should it be used to crop the scene? FALSE will add the envelope to the plot instead.
 #' @param col color palete. Default = [grDevices::grey.colors()]
 #' @param values character. Column Name of your data values.
-#' @param filename character. Path object. Name of the output file.
+#' @param filename character. Path object. Name of the output file. If null, voronoi will pe plotted instead.
 #' @param main character. Title for your voronoi.
 #' @param labels Row, Column or Vector of labels in x.
 #' @param statistics logical. If `TRUE`, basic data statistics will be plotted
 #'                   next to the diagramm. Default = `FALSE`.
+#' @param statistics_inset integer. Inset of the statistics box. If, for some reason, your statistics overlap with your legend, you can adjust the offset with this parameter.
 #' @param delaunay logical. If `TRUE`, a delauney diagramm will be plotted in
 #'                 the background. Default = `FALSE`.
 #'
@@ -29,7 +30,7 @@
 #'
 #' @examples
 #' # load example data
-#' \dontrun{
+#'
 #' nc <- st_read(system.file("gpkg/nc.gpkg", package="sf"), quiet = TRUE) %>%
 #'   summarise()
 #' df <- data.frame(plotID = 1:20,
@@ -46,17 +47,18 @@
 #'         labels = p$plotID,
 #'         statistics = TRUE,
 #'         delaunay = TRUE)
-#' }
+#'
 
 voronoi <- function(x,
                     envelope = NULL,
                     crop_envelope = TRUE,
                     values,
                     col = grDevices::grey.colors(length(values)),
-                    filename,
+                    filename = NULL,
                     main = NULL,
                     labels = NULL,
                     statistics = FALSE,
+                    statistics_inset = -0.15,
                     delaunay = FALSE){
 # add values to x
   x$ClimUtils <- values
@@ -95,10 +97,13 @@ voronoi <- function(x,
     }
   }
 # Create PDF
-  grDevices::pdf(filename,
-                 width = 11, height = 7.5,
-                 bg = "white", colormodel = "cmyk",
-                 paper = "a4r") # Start of PDF-File
+  if(!is.null(filename)){
+    grDevices::pdf(filename,
+                   width = 11, height = 7.5,
+                   bg = "white", colormodel = "cmyk",
+                   paper = "a4r") # Start of PDF-File
+  }
+
   terra::plot(v,
               "ClimUtils",
               type = "continuous",
@@ -128,7 +133,7 @@ voronoi <- function(x,
   if(isTRUE(statistics)){
     graphics::legend("topright",
                      xpd = TRUE,
-                     inset = c(-0.15, 0),
+                     inset = c(statistics_inset, 0),
                      legend = c(paste0("Mean: ", round(mean(data$ClimUtils), 3)),
                                 paste0("Min: ", round(min(data$ClimUtils), 3)),
                                 paste0("Max: ", round(max(data$ClimUtils), 3)),
@@ -138,5 +143,7 @@ voronoi <- function(x,
                      title = "Value Statistics"
                      )
   }
-  grDevices::dev.off() # End of PDF-File
+  if(!is.null(filename)){
+    grDevices::dev.off() # End of PDF-File
+  }
 }

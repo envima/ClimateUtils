@@ -10,7 +10,7 @@ find_dwd_stations(
   mindate,
   res,
   var,
-  per,
+  per = c("historical", "recent", "now"),
   update_rdwd = FALSE
 )
 }

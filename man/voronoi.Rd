@@ -10,10 +10,11 @@ voronoi(
   crop_envelope = TRUE,
   values,
   col = grDevices::grey.colors(length(values)),
-  filename,
+  filename = NULL,
   main = NULL,
   labels = NULL,
   statistics = FALSE,
+  statistics_inset = -0.15,
   delaunay = FALSE
 )
 }
@@ -33,7 +34,7 @@ voronoi(
 
 \item{col}{color palete. Default = \code{\link[grDevices:gray.colors]{grDevices::grey.colors()}}}
 
-\item{filename}{character. Path object. Name of the output file.}
+\item{filename}{character. Path object. Name of the output file. If null, voronoi will pe plotted instead.}
 
 \item{main}{character. Title for your voronoi.}
 
@@ -41,6 +42,8 @@ voronoi(
 
 \item{statistics}{logical. If \code{TRUE}, basic data statistics will be plotted
 next to the diagramm. Default = \code{FALSE}.}
+
+\item{statistics_inset}{integer. Inset of the statistics box. If, for some reason, your statistics overlap with your legend, you can adjust the offset with this parameter.}
 
 \item{delaunay}{logical. If \code{TRUE}, a delauney diagramm will be plotted in
 the background. Default = \code{FALSE}.}
@@ -53,7 +56,7 @@ Calculates a voronoi using the terra package
 }
 \examples{
 # load example data
-\dontrun{
+
 nc <- st_read(system.file("gpkg/nc.gpkg", package="sf"), quiet = TRUE) \%>\%
   summarise()
 df <- data.frame(plotID = 1:20,
@@ -70,7 +73,7 @@ voronoi(x = p,
         labels = p$plotID,
         statistics = TRUE,
         delaunay = TRUE)
-}
+
 }
 \seealso{
 terra, sf
